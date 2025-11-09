@@ -2,9 +2,9 @@
 import { useEffect, useState, useRef } from 'react';
 import { supabase, Profile as ProfileType, Post, uploadMedia } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { BadgeCheck, Edit2, Check, MessageCircle, X, UserMinus, Paperclip, FileText } from 'lucide-react';
+import { BadgeCheck, Edit2, Check, MessageCircle, X, UserMinus, Paperclip, FileText, Settings as SettingsIcon } from 'lucide-react';
 
-export const Profile = ({ userId, onMessage }: { userId?: string; onMessage?: (profile: ProfileType) => void }) => {
+export const Profile = ({ userId, onMessage, onSettings }: { userId?: string; onMessage?: (profile: ProfileType) => void; onSettings?: () => void }) => {
   const [profile, setProfile] = useState<ProfileType | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [isEditing, setIsEditing] = useState(false);
@@ -208,13 +208,24 @@ export const Profile = ({ userId, onMessage }: { userId?: string; onMessage?: (p
 
             <div className="mt-4 sm:mt-0 flex gap-2">
               {isOwnProfile ? (
-                <button
-                  onClick={() => (isEditing ? updateProfile() : setIsEditing(true))}
-                  className="px-5 py-2.5 border border-gray-300 rounded-full font-semibold hover:bg-gray-50 flex items-center gap-2 transition"
-                >
-                  {isEditing ? <Check size={18} /> : <Edit2 size={18} />}
-                  {isEditing ? 'Save' : 'Edit Profile'}
-                </button>
+                <>
+                  <button
+                    onClick={() => (isEditing ? updateProfile() : setIsEditing(true))}
+                    className="px-5 py-2.5 border border-gray-300 rounded-full font-semibold hover:bg-gray-50 flex items-center gap-2 transition"
+                  >
+                    {isEditing ? <Check size={18} /> : <Edit2 size={18} />}
+                    {isEditing ? 'Save' : 'Edit Profile'}
+                  </button>
+                  {onSettings && (
+                    <button
+                      onClick={onSettings}
+                      className="px-5 py-2.5 border border-gray-300 rounded-full font-semibold hover:bg-gray-50 flex items-center gap-2 transition"
+                    >
+                      <SettingsIcon size={18} />
+                      Settings
+                    </button>
+                  )}
+                </>
               ) : (
                 <>
                  <button
