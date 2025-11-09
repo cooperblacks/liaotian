@@ -95,137 +95,114 @@ export const Settings = () => {
   };
 
   const handleVerificationApply = async () => {
-    if (!user?.id || !reason.trim()) return;
+    if (!user?.id || !profile || !reason.trim()) return;
     setLoading(true);
-    const { error } = await supabase
-      .from('profiles')
-      .update({ verification_request: reason })
-      .eq('id', user.id);
+    
+    // 1. Update database
+    const { error } = await supabase.from('profiles').update({ verification_request: reason }).eq('id', user.id);
     setLoading(false);
+    
     if (!error) {
+      // 2. SUCCESS: Update global state immediately
+      updateProfile({ ...profile, verification_request: reason });
       setMessage({ type: 'success', text: 'Verification request submitted!' });
-      setShowApply(false);
       setReason('');
-      // Reload profile to show pending status
-      const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-      if (data) updateProfile(data);
+      setShowApply(false);
     } else {
       setMessage({ type: 'error', text: 'Failed to submit request.' });
     }
     setTimeout(() => setMessage(null), 3000);
   };
 
-  if (!profile) return <div>Loading...</div>;
+  if (!profile || !user) return <div className="text-center p-8">Loading...</div>;
 
   return (
-    <div className="max-w-2xl mx-auto p-4 py-6 space-y-6 bg-[rgb(var(--color-background))) text-[rgb(var(--color-text))]" >
+    <div className="max-w-2xl mx-auto p-4 space-y-8">
+      <div className="flex items-center gap-2">
+        <SettingsLucideIcon size={24} className="text-gray-600" />
+        <h1 className="text-2xl font-bold">Settings</h1>
+      </div>
+
       {message && (
-        <div className={`p-4 rounded-xl border ${
-          message.type === 'success' ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'
-        }`}>
+        <div className={`p-3 rounded-lg flex items-center gap-2 ${message.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+          {message.type === 'success' ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
           {message.text}
         </div>
       )}
 
-      {/* Profile Section */}
-      <section className="bg-[rgb(var(--color-surface))] p-6 rounded-xl border border-[rgb(var(--color-border)))" >
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-[rgb(var(--color-text))]" ><User size={20} /> Profile</h2>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1 text-[rgb(var(--color-text))]" >Display Name</label>
-            <p className="text-[rgb(var(--color-text))]">{profile.display_name}</p>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1 text-[rgb(var(--color-text))]" >Username</label>
-            <div className="flex gap-2 items-center">
-              <span className="text-[rgb(var(--color-text))] font-mono">@{profile.username}</span>
-              <button
-                onClick={() => setNewUsername('')}
-                className="px-3 py-1 text-xs bg-[rgba(var(--color-accent),1)] text-[rgb(var(--color-text-on-primary))] rounded-full hover:bg-[rgba(var(--color-primary),1)] transition"
-              >
-                Edit
-              </button>
-            </div>
-            {newUsername !== '' && (
-              <div className="mt-2 space-y-2">
-                <input
-                  type="text"
-                  value={newUsername}
-                  onChange={(e) => setNewUsername(e.target.value)}
-                  placeholder="New username"
-                  className="w-full px-3 py-2 border border-[rgb(var(--color-border))] rounded-lg focus:outline-none focus:border-[rgb(var(--color-accent))] text-[rgb(var(--color-text))]"
-                />
-                <button
-                  onClick={handleUsernameChange}
-                  disabled={loading}
-                  className="w-full py-2 bg-[rgba(var(--color-accent),1)] text-[rgb(var(--color-text-on-primary))] rounded-lg hover:bg-[rgba(var(--color-primary),1)] disabled:bg-[rgb(var(--color-border))] transition"
-                >
-                  {loading ? '...' : 'Update Username'}
-                </button>
-              </div>
-            )}
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1 text-[rgb(var(--color-text))]" >Email</label>
-            <div className="flex gap-2 items-center">
-              <span className="text-[rgb(var(--color-text))]" >{user.email}</span>
-              <button
-                onClick={() => setNewEmail('')}
-                className="px-3 py-1 text-xs bg-[rgba(var(--color-accent),1)] text-[rgb(var(--color-text-on-primary))] rounded-full hover:bg-[rgba(var(--color-primary),1)] transition"
-              >
-                Edit
-              </button>
-            </div>
-            {newEmail !== '' && (
-              <div className="mt-2 space-y-2">
-                <input
-                  type="email"
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                  placeholder="New email"
-                  className="w-full px-3 py-2 border border-[rgb(var(--color-border))] rounded-lg focus:outline-none focus:border-[rgb(var(--color-accent))] text-[rgb(var(--color-text))]"
-                />
-                <button
-                  onClick={handleEmailChange}
-                  disabled={loading}
-                  className="w-full py-2 bg-[rgba(var(--color-accent),1)] text-[rgb(var(--color-text-on-primary))] rounded-lg hover:bg-[rgba(var(--color-primary),1)] disabled:bg-[rgb(var(--color-border))] transition"
-                >
-                  {loading ? '...' : 'Update Email'}
-                </button>
-              </div>
-            )}
-          </div>
+      {/* Theme Section */}
+      <section className="bg-white p-6 rounded-xl border border-gray-200">
+        <h2 className="text-lg font-semibold mb-4">Theme</h2>
+        <Themes currentTheme={profile.theme} onChange={handleThemeChange} loading={loading} />
+      </section>
+
+      {/* Username Section */}
+      <section className="bg-white p-6 rounded-xl border border-gray-200">
+        <h2 className="text-lg font-semibold mb-4">Username</h2>
+        <p className="text-gray-600 mb-2">Current: @{profile.username}</p>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={newUsername}
+            onChange={(e) => setNewUsername(e.target.value)}
+            placeholder="New username"
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+          />
+          <button
+            onClick={handleUsernameChange}
+            disabled={loading || !newUsername.trim()}
+            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 transition"
+          >
+            {loading ? '...' : 'Change'}
+          </button>
         </div>
       </section>
 
-      {/* Theme Section */}
-      <section className="bg-[rgb(var(--color-surface))] p-6 rounded-xl border border-[rgb(var(--color-border)))" >
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-[rgb(var(--color-text))]" ><SettingsLucideIcon size={20} /> Appearance</h2>
-        <Themes currentTheme={profile.theme || 'lt-classic'} onChange={handleThemeChange} loading={loading} />
+      {/* Email Section */}
+      <section className="bg-white p-6 rounded-xl border border-gray-200">
+        <h2 className="text-lg font-semibold mb-4">Email</h2>
+        <p className="text-gray-600 mb-2">Current: {user.email}</p>
+        <div className="flex gap-2">
+          <input
+            type="email"
+            value={newEmail}
+            onChange={(e) => setNewEmail(e.target.value)}
+            placeholder="New email"
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+          />
+          <button
+            onClick={handleEmailChange}
+            disabled={loading || !newEmail.trim()}
+            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 transition flex items-center gap-2"
+          >
+            <Mail size={16} />
+            {loading ? '...' : 'Change'}
+          </button>
+        </div>
       </section>
 
       {/* Password Section */}
-      <section className="bg-[rgb(var(--color-surface))] p-6 rounded-xl border border-[rgb(var(--color-border)))" >
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-[rgb(var(--color-text))]" ><Lock size={20} /> Password</h2>
+      <section className="bg-white p-6 rounded-xl border border-gray-200">
+        <h2 className="text-lg font-semibold mb-4">Password</h2>
         <div className="space-y-3">
           <input
             type="password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             placeholder="New password (min 6 chars)"
-            className="w-full px-3 py-2 border border-[rgb(var(--color-border))] rounded-lg focus:outline-none focus:border-[rgb(var(--color-accent))] text-[rgb(var(--color-text))]"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
           />
           <input
             type="password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             placeholder="Confirm new password"
-            className="w-full px-3 py-2 border border-[rgb(var(--color-border))] rounded-lg focus:outline-none focus:border-[rgb(var(--color-accent))] text-[rgb(var(--color-text))]"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
           />
           <button
             onClick={handlePasswordChange}
             disabled={loading || newPassword !== confirmPassword || newPassword.length < 6}
-            className="w-full py-2 bg-[rgba(var(--color-accent),1)] text-[rgb(var(--color-text-on-primary))] rounded-lg hover:bg-[rgba(var(--color-primary),1)] disabled:bg-[rgb(var(--color-border))] transition flex items-center justify-center gap-2"
+            className="w-full py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 transition flex items-center justify-center gap-2"
           >
             <Lock size={16} />
             {loading ? '...' : 'Change Password'}
@@ -234,22 +211,22 @@ export const Settings = () => {
       </section>
 
       {/* Verification Section */}
-      <section className="bg-[rgb(var(--color-surface))] p-6 rounded-xl border border-[rgb(var(--color-border)))" >
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-[rgb(var(--color-text))]" ><BadgeCheck size={20} /> Verification</h2>
+      <section className="bg-white p-6 rounded-xl border border-gray-200">
+        <h2 className="text-lg font-semibold mb-4"><BadgeCheck className="text-blue-500" /> Verification</h2>
         {profile.verified ? (
           <div className="flex items-center gap-2 text-green-600">
             <CheckCircle size={20} />
             <span>Verified</span>
-            <Check size={20} className="text-[rgb(var(--color-accent))]" />
+            <Check size={20} className="text-blue-500" />
           </div>
         ) : profile.verification_request ? (
           <div className="text-yellow-600">Pending: {profile.verification_request}</div>
         ) : (
           <>
-            <p className="text-[rgb(var(--color-text-secondary))] mb-4"> Apply for verification badge.</p>
+            <p className="text-gray-600 mb-4"> Apply for verification badge.</p>
             <button
               onClick={() => setShowApply(true)}
-              className="px-4 py-2 bg-[rgba(var(--color-accent),1)] text-[rgb(var(--color-text-on-primary))] rounded-lg hover:bg-[rgba(var(--color-primary),1)] transition"
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
             >
               Apply for Verification
             </button>
@@ -260,19 +237,19 @@ export const Settings = () => {
                   onChange={(e) => setReason(e.target.value)}
                   placeholder="Reason for verification (e.g., public figure, brand, etc.)"
                   rows={3}
-                  className="w-full px-3 py-2 border border-[rgb(var(--color-border))] rounded-lg focus:outline-none focus:border-[rgb(var(--color-accent))] resize-none text-[rgb(var(--color-text))]"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 resize-none"
                 />
                 <div className="flex gap-2">
                   <button
                     onClick={handleVerificationApply}
                     disabled={loading || !reason.trim()}
-                    className="flex-1 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:bg-[rgb(var(--color-border))] transition"
+                    className="flex-1 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:bg-gray-300 transition"
                   >
                     {loading ? '...' : 'Submit'}
                   </button>
                   <button
                     onClick={() => { setShowApply(false); setReason(''); }}
-                    className="px-4 py-2 bg-[rgb(var(--color-surface-hover))] text-[rgb(var(--color-text))] rounded-lg hover:bg-[rgb(var(--color-border))] transition"
+                    className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition"
                   >
                     Cancel
                   </button>
