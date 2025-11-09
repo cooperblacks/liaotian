@@ -18,7 +18,7 @@ export const Settings = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Removed: loadProfile function and its useEffect hook.
+  // Removed: local profile state and loadProfile function/useEffect.
 
   const handleThemeChange = async (newTheme: string) => {
     if (!user?.id || !profile) return;
@@ -29,9 +29,9 @@ export const Settings = () => {
     setLoading(false);
     
     if (!error) {
-      // 2. SUCCESS: Update global state immediately
+      // 2. SUCCESS: Update global state immediately (Theme applied instantly)
       updateProfile({ ...profile, theme: newTheme }); 
-      setMessage({ type: 'success', text: 'Theme updated! (Check app bar for immediate change)' });
+      setMessage({ type: 'success', text: 'Theme updated!' });
     } else {
       setMessage({ type: 'error', text: 'Failed to update theme.' });
     }
@@ -217,13 +217,13 @@ export const Settings = () => {
           <div className="flex items-center gap-2 text-green-600">
             <CheckCircle size={20} />
             <span>Verified</span>
-            <BadgeCheck className="text-blue-500" />
+            <Check size={20} className="text-blue-500" />
           </div>
         ) : profile.verification_request ? (
           <div className="text-yellow-600">Pending: {profile.verification_request}</div>
         ) : (
           <>
-            <p className="text-gray-600 mb-4">Apply for verification badge.</p>
+            <p className="text-gray-600 mb-4"><BadgeCheck className="text-blue-500" /> Apply for verification badge.</p>
             <button
               onClick={() => setShowApply(true)}
               className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
