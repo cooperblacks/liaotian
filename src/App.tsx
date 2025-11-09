@@ -172,7 +172,7 @@ const handleSettings = () => {
       <main className="pb-20">
         {view === 'feed' && <Feed />}
         {view === 'messages' && <Messages />}
-        {view === 'profile' && <Profile userId={selectedProfileId} onMessage={handleMessageUser} onSettings={selectedProfileId === user.id ? handleSettings : undefined} />}
+        {view === 'profile' && <Profile userId={selectedProfileId} onMessage={handleMessageUser} onSettings={!selectedProfileId || selectedProfileId === user.id ? handleSettings : undefined} />}
         {view === 'settings' && <Settings />}
         {showSearch && <Search onClose={() => setShowSearch(false)} />}
       </main>
