@@ -84,17 +84,17 @@ const Main = () => {
     return () => window.removeEventListener('navigateToProfile', handler);
   }, []);
 
-  if (loading) return <div className="min-h-screen bg-gradient-to-br from-red-50 to-[rgba(var(--color-primary),0.05)] flex items-center justify-center text-2xl font-bold">Loading...</div>;
+  if (loading) return <div className="min-h-screen bg-[rgb(var(--color-background))] flex items-center justify-center text-2xl font-bold text-[rgb(var(--color-text))]" style={{background: `linear-gradient(to bottom right, [rgba(var(--color-surface),0.05)], [rgba(var(--color-primary),0.05)])`}}>Loading...</div>;
 
   // === NOT LOGGED IN? SHOW AUTH OR PUBLIC PROFILE ===
   if (!user || !profile) {
     // Allow public profile viewing
     if (view === 'profile' && selectedProfileId) {
       return (
-        <div className="min-h-screen bg-gray-50">
-          <div className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+        <div className="min-h-screen bg-[rgb(var(--color-background))]">
+          <div className="bg-[rgb(var(--color-surface))] border-b border-[rgb(var(--color-border))] sticky top-0 z-50 shadow-sm">
             <div className="max-w-6xl mx-auto flex items-center justify-between px-4 h-14">
-              <h1 className="text-2xl font-black bg-gradient-to-r from-[rgba(var(--color-primary),0.75)] via-[rgba(var(--color-accent),1)] to-[rgba(var(--color-primary),0.85)] bg-clip-text text-transparent">
+              <h1 className="text-2xl font-black bg-gradient-to-r from-[rgba(var(--color-primary),1)] via-[rgba(var(--color-accent),1)] to-[rgba(var(--color-primary),1)] bg-clip-text text-transparent">
                 聊天
               </h1>
               <a href="/" className="text-[rgb(var(--color-primary))] hover:text-[rgba(var(--color-primary),0.8)] font-bold">← Back to Home</a>
@@ -121,8 +121,8 @@ const handleSettings = () => {
 };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+    <div className="min-h-screen bg-[rgb(var(--color-background))]">
+      <nav className="bg-[rgb(var(--color-surface))] border-b border-[rgb(var(--color-border))] sticky top-0 z-50 shadow-sm">
         <div className="max-w-6xl mx-auto flex items-center justify-between px-4 h-14">
           <h1 className="text-2xl font-black bg-gradient-to-r from-[rgba(var(--color-primary),1)] via-[rgba(var(--color-accent),1)] to-[rgba(var(--color-primary),1)] bg-clip-text text-transparent">
             聊天
@@ -130,9 +130,9 @@ const handleSettings = () => {
           <div className="flex items-center gap-2">
 <button
     onClick={() => setShowSearch(true)}
-    className="p-3 rounded-full hover:bg-gray-100 transition"
+    className="p-3 rounded-full hover:bg-[rgb(var(--color-surface-hover))] transition"
   >
-    <SearchIcon size={24} />
+    <SearchIcon size={24} className="text-[rgb(var(--color-text-secondary))]" />
   </button>            
 <button
               onClick={() => {
@@ -140,13 +140,13 @@ const handleSettings = () => {
                 setSelectedProfileId(undefined);
                 window.history.replaceState({}, '', '/');
               }}
-              className={`p-3 rounded-full transition ${view === 'feed' ? 'bg-[rgba(var(--color-primary),0.1)] text-[rgb(var(--color-primary))]' : 'hover:bg-gray-100'}`}
+              className={`p-3 rounded-full transition ${view === 'feed' ? 'bg-[rgba(var(--color-primary),0.1)] text-[rgb(var(--color-primary))]' : 'hover:bg-[rgb(var(--color-surface-hover))]'}`}
             >
               <Home size={24} />
             </button>
             <button
               onClick={() => { setView('messages'); setSelectedProfileId(undefined); }}
-              className={`p-3 rounded-full transition ${view === 'messages' ? 'bg-[rgba(var(--color-primary),0.1)] text-[rgb(var(--color-primary))]' : 'hover:bg-gray-100'}`}
+              className={`p-3 rounded-full transition ${view === 'messages' ? 'bg-[rgba(var(--color-primary),0.1)] text-[rgb(var(--color-primary))]' : 'hover:bg-[rgb(var(--color-surface-hover))]'}`}
             >
               <MessageSquare size={24} />
             </button>
@@ -158,11 +158,11 @@ const handleSettings = () => {
     setSelectedProfileId(undefined);
     setView('profile');
   }}
-  className={`p-3 rounded-full transition ${view === 'profile' && !selectedProfileId ? 'bg-[rgba(var(--color-primary),0.1)] text-[rgb(var(--color-primary))]' : 'hover:bg-gray-100'}`}
+  className={`p-3 rounded-full transition ${view === 'profile' && !selectedProfileId ? 'bg-[rgba(var(--color-primary),0.1)] text-[rgb(var(--color-primary))]' : 'hover:bg-[rgb(var(--color-surface-hover))]'}`}
 >
   <User size={24} />
 </button>
-            <button onClick={signOut} className="p-3 rounded-full hover:bg-red-50 text-red-600 transition">
+            <button onClick={signOut} className="p-3 rounded-full hover:bg-[rgba(239,68,68,0.1)] text-red-600 transition">
               <LogOut size={24} />
             </button>
           </div>
@@ -177,7 +177,7 @@ const handleSettings = () => {
         {showSearch && <Search onClose={() => setShowSearch(false)} />}
       </main>
 
-      <footer className="text-center text-gray-400 text-xs py-4 border-t border-gray-200 bg-white">
+      <footer className="text-center text-[rgb(var(--color-text-secondary))] text-xs py-4 border-t border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface))]">
         © Mux 2025
       </footer>
     </div>
