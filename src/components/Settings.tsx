@@ -1,13 +1,14 @@
 // src/components/Settings.tsx
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { supabase, Profile as ProfileType } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { BadgeCheck, Mail, Lock, User, AlertCircle, CheckCircle, Settings as SettingsLucideIcon, Check } from 'lucide-react';
 import { Themes } from './Themes';
 
 export const Settings = () => {
-  const { user } = useAuth();
-  const [profile, setProfile] = useState<ProfileType | null>(null);
+  // Use global state and new update function from context
+  const { user, profile, updateProfile } = useAuth();
+  
   const [newUsername, setNewUsername] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -17,24 +18,20 @@ export const Settings = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  const loadProfile = async () => {
-    if (!user?.id) return;
-    const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-    setProfile(data);
-  };
-
-  useEffect(() => {
-    loadProfile();
-  }, [user]);
+  // Removed: loadProfile function and its useEffect hook.
 
   const handleThemeChange = async (newTheme: string) => {
-    if (!user?.id) return;
+    if (!user?.id || !profile) return;
     setLoading(true);
+    
+    // 1. Update database
     const { error } = await supabase.from('profiles').update({ theme: newTheme }).eq('id', user.id);
     setLoading(false);
+    
     if (!error) {
-      setProfile(prev => prev ? { ...prev, theme: newTheme } : null); // Update local state immediately
-      setMessage({ type: 'success', text: 'Theme updated!' });
+      // 2. SUCCESS: Update global state immediately
+      updateProfile({ ...profile, theme: newTheme }); 
+      setMessage({ type: 'success', text: 'Theme updated! (Check app bar for immediate change)' });
     } else {
       setMessage({ type: 'error', text: 'Failed to update theme.' });
     }
@@ -42,19 +39,25 @@ export const Settings = () => {
   };
 
   const handleUsernameChange = async () => {
-    if (!user?.id || newUsername === profile?.username || !newUsername.trim()) return;
+    if (!user?.id || !profile || newUsername === profile.username || !newUsername.trim()) return;
     setLoading(true);
+    
+    // Check if username is taken
     const { data: existing } = await supabase.from('profiles').select('id').eq('username', newUsername.toLowerCase()).maybeSingle();
     if (existing) {
       setMessage({ type: 'error', text: 'Username already taken.' });
       setLoading(false);
       return;
     }
+    
+    // 1. Update database
     const { error } = await supabase.from('profiles').update({ username: newUsername.toLowerCase() }).eq('id', user.id);
     setLoading(false);
+    
     if (!error) {
+      // 2. SUCCESS: Update global state immediately
+      updateProfile({ ...profile, username: newUsername.toLowerCase() });
       setMessage({ type: 'success', text: 'Username updated!' });
-      await loadProfile();
       setNewUsername('');
     } else {
       setMessage({ type: 'error', text: 'Failed to update username.' });
@@ -92,15 +95,19 @@ export const Settings = () => {
   };
 
   const handleVerificationApply = async () => {
-    if (!user?.id || !reason.trim()) return;
+    if (!user?.id || !profile || !reason.trim()) return;
     setLoading(true);
+    
+    // 1. Update database
     const { error } = await supabase.from('profiles').update({ verification_request: reason }).eq('id', user.id);
     setLoading(false);
+    
     if (!error) {
+      // 2. SUCCESS: Update global state immediately
+      updateProfile({ ...profile, verification_request: reason });
       setMessage({ type: 'success', text: 'Verification request submitted!' });
       setReason('');
       setShowApply(false);
-      await loadProfile();
     } else {
       setMessage({ type: 'error', text: 'Failed to submit request.' });
     }
