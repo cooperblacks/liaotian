@@ -17,6 +17,7 @@ export type Profile = {
   created_at: string;
   theme: string;
   verification_request: string;
+  last_seen?: string;  // Added for online status
 };
 
 export type Post = {
@@ -40,6 +41,15 @@ export type Message = {
   created_at: string;
   sender?: Profile;
   recipient?: Profile;
+  reply_to_id?: string;  // Added for replying to messages
+  group_id?: string;     // Added for group chats
+};
+
+export type Group = {  // Added for group chats
+  id: string;
+  name: string;
+  creator_id: string;
+  created_at: string;
 };
 
 // === STORAGE HELPERS ===
