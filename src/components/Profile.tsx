@@ -183,7 +183,7 @@ export const Profile = ({ userId, onMessage, onSettings }: { userId?: string; on
     }
   };
 
-  if (!profile) return <div className="text-center p-8">Loading...</div>;
+  if (!profile) return <div className="text-center p-8 text-[rgb(var(--color-text))]">Loading...</div>;
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -211,7 +211,7 @@ export const Profile = ({ userId, onMessage, onSettings }: { userId?: string; on
                 <>
                   <button
                     onClick={() => (isEditing ? updateProfile() : setIsEditing(true))}
-                    className="px-5 py-2.5 border border-[rgb(var(--color-border))] rounded-full font-semibold hover:bg-[rgb(var(--color-surface-hover))] flex items-center gap-2 transition"
+                    className="px-5 py-2.5 border border-[rgb(var(--color-border))] text-[rgb(var(--color-text))] rounded-full font-semibold hover:bg-[rgb(var(--color-surface-hover))] flex items-center gap-2 transition"
                   >
                     {isEditing ? <Check size={18} /> : <Edit2 size={18} />}
                     {isEditing ? 'Save' : 'Edit Profile'}
@@ -219,7 +219,7 @@ export const Profile = ({ userId, onMessage, onSettings }: { userId?: string; on
                   {onSettings && (
                     <button
                       onClick={onSettings}
-                      className="px-5 py-2.5 border border-[rgb(var(--color-border))] rounded-full font-semibold hover:bg-[rgb(var(--color-surface-hover))] flex items-center gap-2 transition"
+                      className="px-5 py-2.5 border border-[rgb(var(--color-border))] text-[rgb(var(--color-text))] rounded-full font-semibold hover:bg-[rgb(var(--color-surface-hover))] flex items-center gap-2 transition"
                     >
                       <SettingsIcon size={18} />
                       Settings
@@ -247,7 +247,7 @@ export const Profile = ({ userId, onMessage, onSettings }: { userId?: string; on
                   <button
                     onClick={toggleFollow}
                     className={`px-6 py-2.5 rounded-full font-semibold transition ${
-                      isFollowing ? 'bg-[rgb(var(--color-surface))] border border-[rgb(var(--color-border))] hover:bg-[rgb(var(--color-surface-hover))]' : 'bg-[rgb(var(--color-text))] text-[rgb(var(--color-background))] hover:bg-[rgb(var(--color-surface))]'
+                      isFollowing ? 'bg-[rgb(var(--color-surface))] text-[rgb(var(--color-text))] border border-[rgb(var(--color-border))] hover:bg-[rgb(var(--color-surface-hover))]' : 'bg-[rgb(var(--color-text))] text-[rgb(var(--color-background))] hover:bg-[rgb(var(--color-surface))]'
                     }`}
                   >
                     {isFollowing ? 'Following' : 'Follow'}
@@ -259,20 +259,20 @@ export const Profile = ({ userId, onMessage, onSettings }: { userId?: string; on
 
           {isEditing ? (
             <div className="mt-6 space-y-3">
-              <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Display Name" className="w-full px-4 py-2.5 border border-[rgb(var(--color-border))] rounded-lg focus:outline-none focus:border-[rgb(var(--color-accent))]" />
-              <textarea value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Bio" rows={3} className="w-full px-4 py-2.5 border border-[rgb(var(--color-border))] rounded-lg focus:outline-none focus:border-[rgb(var(--color-accent))] resize-none" />
+              <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Display Name" className="w-full px-4 py-2.5 border border-[rgb(var(--color-border))] rounded-lg focus:outline-none focus:border-[rgb(var(--color-accent))] bg-[rgb(var(--color-background))] text-[rgb(var(--color-text))]" />
+              <textarea value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Bio" rows={3} className="w-full px-4 py-2.5 border border-[rgb(var(--color-border))] rounded-lg focus:outline-none focus:border-[rgb(var(--color-accent))] resize-none bg-[rgb(var(--color-background))] text-[rgb(var(--color-text))]" />
               <div className="flex items-center gap-2">
                 <input 
                   type="url" 
                   value={avatarUrl} 
                   onChange={(e) => setAvatarUrl(e.target.value)} 
                   placeholder="Avatar URL" 
-                  className="flex-1 px-4 py-2.5 border border-[rgb(var(--color-border))] rounded-lg focus:outline-none focus:border-[rgb(var(--color-accent))]" 
+                  className="flex-1 px-4 py-2.5 border border-[rgb(var(--color-border))] rounded-lg focus:outline-none focus:border-[rgb(var(--color-accent))] bg-[rgb(var(--color-background))] text-[rgb(var(--color-text))]" 
                 />
                 <button 
                   type="button" 
                   onClick={() => avatarFileInput.current?.click()} 
-                  className="px-4 py-2 bg-[rgb(var(--color-surface-hover))] rounded-lg hover:bg-[rgb(var(--color-border))] transition flex items-center gap-2"
+                  className="px-4 py-2 bg-[rgb(var(--color-surface-hover))] text-[rgb(var(--color-text-secondary))] rounded-lg hover:bg-[rgb(var(--color-border))] transition flex items-center gap-2"
                 >
                   <Paperclip size={16} />
                 </button>
@@ -295,12 +295,12 @@ export const Profile = ({ userId, onMessage, onSettings }: { userId?: string; on
                   value={bannerUrl} 
                   onChange={(e) => setBannerUrl(e.target.value)} 
                   placeholder="Banner URL" 
-                  className="flex-1 px-4 py-2.5 border border-[rgb(var(--color-border))] rounded-lg focus:outline-none focus:border-[rgb(var(--color-accent))]" 
+                  className="flex-1 px-4 py-2.5 border border-[rgb(var(--color-border))] rounded-lg focus:outline-none focus:border-[rgb(var(--color-accent))] bg-[rgb(var(--color-background))] text-[rgb(var(--color-text))]" 
                 />
                 <button 
                   type="button" 
                   onClick={() => bannerFileInput.current?.click()} 
-                  className="px-4 py-2 bg-[rgb(var(--color-surface-hover))] rounded-lg hover:bg-[rgb(var(--color-border))] transition flex items-center gap-2"
+                  className="px-4 py-2 bg-[rgb(var(--color-surface-hover))] text-[rgb(var(--color-text-secondary))] rounded-lg hover:bg-[rgb(var(--color-border))] transition flex items-center gap-2"
                 >
                   <Paperclip size={16} />
                 </button>
@@ -321,7 +321,7 @@ export const Profile = ({ userId, onMessage, onSettings }: { userId?: string; on
           ) : (
             <div className="mt-5">
               <div className="flex items-center gap-2">
-                <button onClick={() => !isOwnProfile && goToProfile(profile.id)} className="font-bold text-2xl hover:underline">
+                <button onClick={() => !isOwnProfile && goToProfile(profile.id)} className="font-bold text-2xl text-[rgb(var(--color-text))] hover:underline">
                   {profile.display_name}
                 </button>
                 {profile.verified && <BadgeCheck size={22} className="text-[rgb(var(--color-accent))]" />}
@@ -329,10 +329,10 @@ export const Profile = ({ userId, onMessage, onSettings }: { userId?: string; on
               <p className="text-[rgb(var(--color-text-secondary))]">@{profile.username}</p>
               {profile.bio && <p className="mt-3 text-[rgb(var(--color-text))]">{profile.bio}</p>}
               <div className="mt-4 flex gap-8 text-sm">
-                <button onClick={openFollowing} className="hover:underline">
+                <button onClick={openFollowing} className="hover:underline text-[rgb(var(--color-text))]">
                   <strong className="text-lg">{followingCount}</strong> <span className="text-[rgb(var(--color-text-secondary))]">Following</span>
                 </button>
-                <button onClick={openFollowers} className="hover:underline">
+                <button onClick={openFollowers} className="hover:underline text-[rgb(var(--color-text))]">
                   <strong className="text-lg">{followerCount}</strong> <span className="text-[rgb(var(--color-text-secondary))]">Followers</span>
                 </button>
               </div>
@@ -354,7 +354,7 @@ export const Profile = ({ userId, onMessage, onSettings }: { userId?: string; on
       </button>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1 flex-wrap">
-          <button onClick={() => goToProfile(post.user_id)} className="font-bold hover:underline">
+          <button onClick={() => goToProfile(post.user_id)} className="font-bold text-[rgb(var(--color-text))] hover:underline">
             {post.profiles?.display_name}
           </button>
           {post.profiles?.verified && <BadgeCheck size={16} className="text-[rgb(var(--color-accent))]" />}
@@ -363,7 +363,7 @@ export const Profile = ({ userId, onMessage, onSettings }: { userId?: string; on
             · {new Date(post.created_at).toLocaleDateString()}
           </span>
         </div>
-        <p className="mt-1 whitespace-pre-wrap break-words">{post.content}</p>
+        <p className="mt-1 whitespace-pre-wrap break-words text-[rgb(var(--color-text))]">{post.content}</p>
         {post.media_url && (
                   <div className="mt-3">
                     {post.media_type === 'image' && (
@@ -380,7 +380,7 @@ export const Profile = ({ userId, onMessage, onSettings }: { userId?: string; on
                         href={post.media_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-2 p-3 bg-[rgb(var(--color-surface-hover))] rounded-lg hover:bg-[rgb(var(--color-border))] transition inline-block"
+                        className="flex items-center gap-2 p-3 bg-[rgb(var(--color-surface-hover))] rounded-lg text-[rgb(var(--color-text))] hover:bg-[rgb(var(--color-border))] transition inline-block"
                       >
                         <FileText size={20} /> Download File
                       </a>
@@ -397,8 +397,8 @@ export const Profile = ({ userId, onMessage, onSettings }: { userId?: string; on
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={closeModal}>
           <div className="bg-[rgb(var(--color-surface))] rounded-2xl w-full max-w-md max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between p-4 border-b border-[rgb(var(--color-border))]">
-              <h3 className="font-bold text-lg">{showFollowers ? 'Followers' : 'Following'}</h3>
-              <button onClick={closeModal} className="p-2 hover:bg-[rgb(var(--color-surface-hover))] rounded-full">
+              <h3 className="font-bold text-lg text-[rgb(var(--color-text))]">{showFollowers ? 'Followers' : 'Following'}</h3>
+              <button onClick={closeModal} className="p-2 text-[rgb(var(--color-text))] hover:bg-[rgb(var(--color-surface-hover))] rounded-full">
                 <X size={20} />
               </button>
             </div>
@@ -416,7 +416,7 @@ export const Profile = ({ userId, onMessage, onSettings }: { userId?: string; on
                         alt=""
                       />
                       <div>
-                        <div className="font-semibold">{p.display_name}</div>
+                        <div className="font-semibold text-[rgb(var(--color-text))]">{p.display_name}</div>
                         <div className="text-sm text-[rgb(var(--color-text-secondary))]">@{p.username}</div>
                       </div>
                     </button>
@@ -442,7 +442,7 @@ export const Profile = ({ userId, onMessage, onSettings }: { userId?: string; on
                               toggleFollowUser(p.id);
                             }}
                             className={`px-4 py-1.5 text-sm font-medium rounded-full border transition ${
-                              isFollowingThisUser ? 'border-[rgb(var(--color-border))] hover:bg-[rgb(var(--color-surface-hover))]' : 'bg-[rgb(var(--color-text))] text-[rgb(var(--color-background))] hover:bg-[rgb(var(--color-surface))]'
+                              isFollowingThisUser ? 'border-[rgb(var(--color-border))] text-[rgb(var(--color-text))] hover:bg-[rgb(var(--color-surface-hover))]' : 'bg-[rgb(var(--color-text))] text-[rgb(var(--color-background))] hover:bg-[rgb(var(--color-surface))]'
                             }`}
                           >
                             {isFollowingThisUser ? 'Following' : 'Follow'}
