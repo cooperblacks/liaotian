@@ -16,6 +16,8 @@ export const Messages = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSidebar, setShowSidebar] = useState(true);
   const [isOtherTyping, setIsOtherTyping] = useState(false);
+  const [showMediaMenu, setShowMediaMenu] = useState(false);
+  const [mediaInputMode, setMediaInputMode] = useState<'file' | 'url' | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -264,6 +266,7 @@ export const Messages = () => {
       setRemoteUrl('');
       setIsUploading(false);
       setUploadProgress(0);
+      setMediaInputMode(null);
     }
   };
 
@@ -315,7 +318,7 @@ export const Messages = () => {
   };
 
   return (
-    <div className="flex h-screen mb-[-20] bg-[rgb(var(--color-background))] overflow-hidden">
+    <div className="flex h-screen mb-[-40] bg-[rgb(var(--color-background))] overflow-hidden">
       <div className={`w-full md:w-96 bg-[rgb(var(--color-surface))] border-r border-[rgb(var(--color-border))] flex-shrink-0 flex flex-col transition-transform duration-300 ease-in-out ${showSidebar ? 'translate-x-0' : '-translate-x-full md:translate-x-0'} md:relative fixed inset-y-0 left-0 z-40 md:z-auto`}>
         <div className="p-4 border-b border-[rgb(var(--color-border))] sticky top-0 bg-[rgb(var(--color-surface))] z-10">
           <h2 className="text-3xl font-extrabold text-[rgb(var(--color-text))] mb-4">Chats</h2>
@@ -409,7 +412,7 @@ export const Messages = () => {
                   className={`flex ${msg.sender_id === user!.id ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`max-w-[90%] sm:max-w-[80%] md:max-w-[65%] px-3 py-2 rounded-xl shadow-md ${
+                    className={`max-w-[90%] sm:max-w-[60%] md:max-w-[65%] px-3 py-2 rounded-xl shadow-md ${
                       msg.sender_id === user!.id
                         ? 'bg-[rgb(var(--color-accent))] text-[rgb(var(--color-text-on-primary))] rounded-br-none'
                         : 'bg-[rgb(var(--color-surface))] text-[rgb(var(--color-text))] border border-[rgb(var(--color-border))] rounded-tl-none'
@@ -467,9 +470,9 @@ export const Messages = () => {
               <div ref={messagesEndRef} />
             </div>
 
-            <form onSubmit={sendMessage} className="p-3 bg-[rgb(var(--color-surface))] border-t border-[rgb(var(--color-border))]">
+            <div className="bg-[rgb(var(--color-surface))]">
               {(file || remoteUrl) && (
-                <div className="mb-3 p-3 bg-[rgb(var(--color-surface-hover))] rounded-lg flex items-center justify-between">
+                <div className="mb-3 p-3 bg-[rgb(var(--color-surface-hover))] rounded-lg flex items-center justify-between mx-3 mt-3">
                   <div className="flex-1 pr-2">
                     {getPreview()}
                   </div>
@@ -478,6 +481,7 @@ export const Messages = () => {
                     onClick={() => {
                       setFile(null);
                       setRemoteUrl('');
+                      setMediaInputMode(null);
                     }}
                     className="p-1 hover:bg-[rgb(var(--color-surface-hover))] rounded-full transition text-[rgb(var(--color-text))]"
                   >
@@ -485,7 +489,37 @@ export const Messages = () => {
                   </button>
                 </div>
               )}
+              
+              {mediaInputMode === 'url' && !file && !remoteUrl && (
+                  <div className="p-3">
+                      <div className="flex items-center gap-2">
+                          <input
+                              type="url"
+                              value={remoteUrl}
+                              onChange={(e) => {
+                                setRemoteUrl(e.target.value);
+                                setFile(null);
+                              }}
+                              placeholder="Paste media URL..."
+                              className="flex-1 px-3 py-2 text-sm border border-[rgb(var(--color-border))] rounded-full focus:outline-none focus:border-[rgb(var(--color-accent))] bg-[rgb(var(--color-background))] text-[rgb(var(--color-text))]"
+                          />
+                          <button
+                              type="button"
+                              onClick={() => {
+                                setRemoteUrl('');
+                                setMediaInputMode(null);
+                              }}
+                              className="p-1 rounded-full text-[rgb(var(--color-text-secondary))] hover:bg-[rgb(var(--color-surface-hover))] transition"
+                              title="Cancel URL input"
+                          >
+                              <X size={20} />
+                          </button>
+                      </div>
+                  </div>
+              )}
+            </div>
 
+            <form onSubmit={sendMessage} className="p-3 bg-[rgb(var(--color-surface))] border-t border-[rgb(var(--color-border))] relative">
               {isUploading && (
                 <div className="mb-3 w-full bg-[rgb(var(--color-border))] rounded-full h-2 overflow-hidden">
                   <div 
@@ -506,28 +540,48 @@ export const Messages = () => {
                 className="hidden"
               />
 
+              {/* Media Selection Pop-up */}
+              {showMediaMenu && (
+                  <div className="absolute bottom-full left-3 mb-2 w-48 bg-[rgb(var(--color-surface))] border border-[rgb(var(--color-border))] rounded-lg shadow-xl overflow-hidden z-30">
+                      <button
+                          type="button"
+                          className="w-full text-left p-3 text-[rgb(var(--color-text))] hover:bg-[rgb(var(--color-surface-hover))] transition flex items-center gap-2"
+                          onClick={() => {
+                              setShowMediaMenu(false);
+                              fileInputRef.current?.click();
+                              setRemoteUrl('');
+                              setMediaInputMode('file');
+                          }}
+                      >
+                          <Paperclip size={18} /> Upload file
+                      </button>
+                      <button
+                          type="button"
+                          className="w-full text-left p-3 text-[rgb(var(--color-text))] hover:bg-[rgb(var(--color-surface-hover))] transition flex items-center gap-2"
+                          onClick={() => {
+                              setShowMediaMenu(false);
+                              setFile(null);
+                              setRemoteUrl('');
+                              setMediaInputMode('url');
+                          }}
+                      >
+                          <Link size={18} /> Fetch from URL
+                      </button>
+                  </div>
+              )}
+
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowMediaMenu(!showMediaMenu);
+                  }}
                   className="p-2 rounded-full text-[rgb(var(--color-text-secondary))] hover:bg-[rgb(var(--color-surface-hover))] transition"
-                  title="Attach file"
+                  title="Attach file or link"
                 >
                   <Paperclip size={24} />
                 </button>
-
-                <div className="flex-1 flex items-center gap-1">
-                  <input
-                    type="url"
-                    value={remoteUrl}
-                    onChange={(e) => {
-                      setRemoteUrl(e.target.value);
-                      setFile(null);
-                    }}
-                    placeholder="Paste media URL..."
-                    className="flex-1 px-3 py-2 text-sm border border-[rgb(var(--color-border))] rounded-full focus:outline-none focus:border-[rgb(var(--color-accent))] bg-[rgb(var(--color-background))] text-[rgb(var(--color-text))]"
-                  />
-                </div>
 
                 <input
                   type="text"
