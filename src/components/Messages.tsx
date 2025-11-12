@@ -48,6 +48,45 @@ export const Messages = () => {
   };
   // -----------------------------
 
+  // --- LAST SEEN FORMATTER MODIFICATION START ---
+  const formatLastSeen = (lastSeen: string | null | undefined): string | null => {
+    if (!lastSeen) return null;
+
+    const lastSeenDate = new Date(lastSeen);
+    const now = new Date();
+    const diffMs = now.getTime() - lastSeenDate.getTime();
+
+    // Use the existing 5-minute rule for "online"
+    const FIVE_MINUTES = 300000;
+    if (diffMs < FIVE_MINUTES) return null;
+
+    const diffSeconds = Math.floor(diffMs / 1000);
+    
+    const days = Math.floor(diffSeconds / (60 * 60 * 24));
+    const hours = Math.floor((diffSeconds % (60 * 60 * 24)) / (60 * 60));
+    const minutes = Math.floor((diffSeconds % (60 * 60)) / 60);
+
+    let parts = [];
+    if (days > 0) {
+        // Show Days and the next most significant part (Hours)
+        parts.push(`${days} day${days > 1 ? 's' : ''}`);
+        if (hours > 0) parts.push(`${hours} hour${hours > 1 ? 's' : ''}`);
+        else if (minutes > 0) parts.push(`${minutes} minute${minutes > 1 ? 's' : ''}`);
+    } else if (hours > 0) {
+        // Show Hours and Minutes
+        parts.push(`${hours} hour${hours > 1 ? 's' : ''}`);
+        if (minutes > 0) parts.push(`${minutes} minute${minutes > 1 ? 's' : ''}`);
+    } else if (minutes > 0) {
+        // Show only Minutes
+        parts.push(`${minutes} minute${minutes > 1 ? 's' : ''}`);
+    }
+
+    if (parts.length === 0) return null; 
+
+    return `Last seen ${parts.join(' ')} ago`;
+  };
+  // --- LAST SEEN FORMATTER MODIFICATION END ---
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -403,7 +442,13 @@ export const Messages = () => {
                   {u.display_name}
                   {u.verified && <BadgeCheck size={16} className="text-[rgb(var(--color-accent))] flex-shrink-0" />}
                 </div>
-                <div className="text-sm text-[rgb(var(--color-text-secondary))] truncate">@{u.username}</div>
+                {/* MODIFICATION: Display online status or last seen time in place of @username */}
+                <div className="text-sm text-[rgb(var(--color-text-secondary))] truncate">
+                  {isUserOnline(u.last_seen)
+                    ? 'Online'
+                    : formatLastSeen(u.last_seen) || `@${u.username}`
+                  }
+                </div>
               </div>
             </button>
           ))}
@@ -435,7 +480,13 @@ export const Messages = () => {
                     {selectedUser.display_name}
                     {selectedUser.verified && <BadgeCheck size={16} className="text-[rgb(var(--color-accent))] flex-shrink-0" />}
                   </div>
-                  <div className="text-sm text-[rgb(var(--color-text-secondary))] truncate">@{selectedUser.username}</div>
+                  {/* MODIFICATION: Display online status or last seen time in place of @username */}
+                  <div className="text-sm text-[rgb(var(--color-text-secondary))] truncate">
+                    {isUserOnline(selectedUser.last_seen)
+                      ? 'Online'
+                      : formatLastSeen(selectedUser.last_seen) || `@${selectedUser.username}`
+                    }
+                  </div>
                 </div>
               </button>
             </div>
