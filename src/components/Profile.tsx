@@ -28,6 +28,14 @@ export const Profile = ({ userId, onMessage, onSettings }: { userId?: string; on
   const avatarFileInput = useRef<HTMLInputElement>(null);
   const bannerFileInput = useRef<HTMLInputElement>(null);
 
+  const isOnline = (lastSeen: string | null | undefined) => {
+    if (!lastSeen) return false;
+    const now = new Date().getTime();
+    const lastSeenTime = new Date(lastSeen).getTime();
+    const diff = now - lastSeenTime;
+    return diff < 300000; // 5 minutes
+  };
+
   useEffect(() => {
     if (targetUserId) {
       loadProfile();
@@ -198,12 +206,15 @@ export const Profile = ({ userId, onMessage, onSettings }: { userId?: string; on
 
         <div className="relative px-4 pb-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end -mt-16">
-            <button onClick={() => !isOwnProfile && goToProfile(profile.id)}>
+            <button onClick={() => !isOwnProfile && goToProfile(profile.id)} className="relative">
               <img
                 src={profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.username}`}
                 className="w-32 h-32 rounded-full border-4 border-[rgb(var(--color-surface))] shadow-lg ring-4 ring-[rgb(var(--color-surface))] hover:opacity-90 transition"
                 alt="Avatar"
               />
+              {isOnline(profile.last_seen) && (
+                <span className="absolute bottom-2 right-2 w-5 h-5 bg-green-500 border-4 border-[rgb(var(--color-surface))] rounded-full" />
+              )}
             </button>
 
             <div className="mt-4 sm:mt-0 flex gap-2">
@@ -345,12 +356,15 @@ export const Profile = ({ userId, onMessage, onSettings }: { userId?: string; on
         {posts.map((post) => (
   <div key={post.id} className="border-b border-[rgb(var(--color-border))] p-4 hover:bg-[rgb(var(--color-surface-hover))] transition bg-[rgb(var(--color-surface))]">
     <div className="flex gap-4 items-start">
-      <button onClick={() => goToProfile(post.user_id)} className="flex-shrink-0">
+      <button onClick={() => goToProfile(post.user_id)} className="flex-shrink-0 relative">
         <img
           src={post.profiles?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${post.profiles?.username}`}
           className="w-12 h-12 rounded-full hover:opacity-80 transition"
           alt="Avatar"
         />
+        {isOnline(post.profiles?.last_seen) && (
+          <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-[rgb(var(--color-surface))] rounded-full" />
+        )}
       </button>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1 flex-wrap">
@@ -410,11 +424,16 @@ export const Profile = ({ userId, onMessage, onSettings }: { userId?: string; on
                 return (
                   <div key={p.id} className="flex items-center justify-between p-4 hover:bg-[rgb(var(--color-surface-hover))] border-b border-[rgb(var(--color-border))]">
                     <button onClick={() => goToProfile(p.id)} className="flex items-center gap-3 flex-1 text-left">
-                      <img
-                        src={p.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.username}`}
-                        className="w-10 h-10 rounded-full"
-                        alt=""
-                      />
+                      <div className="relative flex-shrink-0">
+                        <img
+                          src={p.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.username}`}
+                          className="w-10 h-10 rounded-full"
+                          alt=""
+                        />
+                        {isOnline(p.last_seen) && (
+                          <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-[rgb(var(--color-surface))] rounded-full" />
+                        )}
+                      </div>
                       <div>
                         <div className="font-semibold text-[rgb(var(--color-text))]">{p.display_name}</div>
                         <div className="text-sm text-[rgb(var(--color-text-secondary))]">@{p.username}</div>
