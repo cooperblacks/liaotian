@@ -105,6 +105,23 @@ const Main = () => {
     return () => window.removeEventListener('navigateToProfile', handler);
   }, [navigate]);
 
+  // === ONLINE STATUS UPDATE ===
+  useEffect(() => {
+    if (!user) return;
+
+    const updateLastSeen = async () => {
+      await supabase.from('profiles').update({ last_seen: new Date().toISOString() }).eq('id', user.id);
+    };
+
+    // Run immediately and then every 30 seconds
+    updateLastSeen();
+    const interval = setInterval(updateLastSeen, 30000); // 30 seconds
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [user]);
+
   if (loading) {
     return (
       <div
