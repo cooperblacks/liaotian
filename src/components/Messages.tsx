@@ -467,10 +467,15 @@ export const Messages = () => {
                         : 'bg-[rgb(var(--color-surface))] text-[rgb(var(--color-text))] border border-[rgb(var(--color-border))] rounded-tl-none'
                     }`}
                   >
-                    {(() => {
+                    {/* --- MODIFICATION START --- */}
+                    {/* Only render this block if reply_to_id exists */}
+                    {msg.reply_to_id && (() => {
                       // Find the replied-to message. Use joined data first, fallback to in-memory search.
-                      const repliedToMsg = msg.reply_to ? msg.reply_to : (msg.reply_to_id ? messages.find(m => m.id === msg.reply_to_id) : null);
+                      // The joined data (msg.reply_to) comes from loadMessages OR the subscription fix
+                      const repliedToMsg = msg.reply_to ? msg.reply_to : messages.find(m => m.id === msg.reply_to_id);
                       
+                      // If the replied-to message isn't found (e.g., it's very old and not loaded),
+                      // or if the join failed and it's not in the array, don't render the block.
                       if (!repliedToMsg) return null;
                       
                       const isReplyToSelf = repliedToMsg.sender_id === user!.id;
@@ -494,6 +499,7 @@ export const Messages = () => {
                         </div>
                       );
                     })()}
+                    {/* --- MODIFICATION END --- */}
 
                     {msg.media_url && (
                       <div className="mt-2">
