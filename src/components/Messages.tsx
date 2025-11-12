@@ -338,11 +338,16 @@ export const Messages = () => {
               }}
               className={`w-full flex items-center gap-3 p-4 transition border-b border-[rgb(var(--color-border))] ${selectedUser?.id === u.id ? 'bg-[rgb(var(--color-surface-hover))]' : 'hover:bg-[rgb(var(--color-surface-hover))]'}`}
             >
-              <img
-                src={u.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`}
-                className="w-14 h-14 rounded-full object-cover"
-                alt=""
-              />
+              <div className="relative">
+                <img
+                  src={u.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`}
+                  className="w-14 h-14 rounded-full object-cover"
+                  alt=""
+                />
+                <div
+                  className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full ring-2 ring-[rgb(var(--color-surface))]"
+                />
+              </div>
               <div className="text-left flex-1 min-w-0">
                 <div className="font-semibold flex items-center gap-1 truncate text-[rgb(var(--color-text))]">
                   {u.display_name}
@@ -363,11 +368,16 @@ export const Messages = () => {
                 <ArrowLeft size={24} className="text-[rgb(var(--color-text-secondary))]" />
               </button>
               <button onClick={() => goToProfile(selectedUser.id)} className="flex items-center gap-3 flex-1 min-w-0">
-                <img
-                  src={selectedUser.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedUser.username}`}
-                  className="w-10 h-10 rounded-full object-cover"
-                  alt=""
-                />
+                <div className="relative">
+                  <img
+                    src={selectedUser.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedUser.username}`}
+                    className="w-10 h-10 rounded-full object-cover"
+                    alt=""
+                  />
+                  <div
+                    className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full ring-2 ring-[rgb(var(--color-surface))]"
+                  />
+                </div>
                 <div className="text-left min-w-0">
                   <div className="font-bold flex items-center gap-1 truncate text-[rgb(var(--color-text))]">
                     {selectedUser.display_name}
