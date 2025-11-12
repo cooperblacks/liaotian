@@ -10,6 +10,7 @@ type AppMessage = Message & {
     id: string;
     content: string;
     sender_id: string;
+    media_type?: string | null; // <--- MODIFICATION: Added media_type
   } | null;
 };
 
@@ -174,7 +175,7 @@ export const Messages = () => {
               // and this fetch only adds data if it was missing.
               const { data: repliedToMsgData } = await supabase
                 .from('messages')
-                .select('id, content, sender_id')
+                .select('id, content, sender_id, media_type') // <--- MODIFICATION: Added media_type
                 .eq('id', finalMsg.reply_to_id)
                 .single();
               
@@ -309,7 +310,7 @@ export const Messages = () => {
   const loadMessages = async (recipientId: string) => {
     const { data } = await supabase
       .from('messages')
-      .select('*, reply_to:messages!reply_to_id(id, content, sender_id)')
+      .select('*, reply_to:messages!reply_to_id(id, content, sender_id, media_type)') // <--- MODIFICATION: Added media_type
       .or(
         `and(sender_id.eq.${user!.id},recipient_id.eq.${recipientId}),and(sender_id.eq.${recipientId},recipient_id.eq.${user!.id})`
       )
@@ -472,6 +473,7 @@ export const Messages = () => {
                     {msg.reply_to_id && (() => {
                       // Find the replied-to message. Use joined data first, fallback to in-memory search.
                       // The joined data (msg.reply_to) comes from loadMessages OR the subscription fix
+                      // The fallback `messages.find` will also have media_type as it's a full AppMessage
                       const repliedToMsg = msg.reply_to ? msg.reply_to : messages.find(m => m.id === msg.reply_to_id);
                       
                       // If the replied-to message isn't found (e.g., it's very old and not loaded),
@@ -493,8 +495,20 @@ export const Messages = () => {
                           }`}>
                             {isReplyToSelf ? 'You' : selectedUser?.display_name}
                           </div>
+                          {/* MODIFICATION: Show text or media placeholder */}
                           <p className="text-xs opacity-90 truncate whitespace-pre-wrap break-words">
-                            {repliedToMsg.content}
+                            {repliedToMsg.content ? repliedToMsg.content : (
+                              <span className="flex items-center gap-1 italic opacity-80">
+                                {repliedToMsg.media_type === 'image' && <Paperclip size={12} className="inline-block" />}
+                                {repliedToMsg.media_type === 'image' && 'Image'}
+                                {repliedToMsg.media_type === 'video' && <Paperclip size={12} className="inline-block" />}
+                                {repliedToMsg.media_type === 'video' && 'Video'}
+                                {repliedToMsg.media_type === 'document' && <FileText size={12} className="inline-block" />}
+                                {repliedToMsg.media_type === 'document' && 'File'}
+                                {/* Fallback if RLS hides content/media but not sender */}
+                                {!repliedToMsg.content && !repliedToMsg.media_type && '[Message]'}
+                              </span>
+                            )}
                           </p>
                         </div>
                       );
@@ -574,9 +588,21 @@ export const Messages = () => {
                       <CornerUpLeft size={14} />
                       Replying to {replyingTo.sender_id === user!.id ? 'yourself' : selectedUser?.display_name}
                     </div>
+                    {/* --- MODIFICATION: Show text or media placeholder --- */}
                     <p className="text-sm text-[rgb(var(--color-text))] truncate mt-0.5">
-                      {replyingTo.content}
+                      {replyingTo.content ? replyingTo.content : (
+                        <span className="flex items-center gap-1 italic opacity-80">
+                          {replyingTo.media_type === 'image' && <Paperclip size={12} className="inline-block" />}
+                          {replyingTo.media_type === 'image' && 'Image'}
+                          {replyingTo.media_type === 'video' && <Paperclip size={12} className="inline-block" />}
+                          {replyingTo.media_type === 'video' && 'Video'}
+                          {replyingTo.media_type === 'document' && <FileText size={12} className="inline-block" />}
+                          {replyingTo.media_type === 'document' && 'File'}
+                          {!replyingTo.content && !replyingTo.media_type && '[Message]'}
+                        </span>
+                      )}
                     </p>
+                    {/* --- END MODIFICATION --- */}
                   </div>
                   <button
                     type="button"
