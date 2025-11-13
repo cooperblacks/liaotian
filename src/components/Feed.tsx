@@ -2,15 +2,9 @@
 import { useEffect, useState, useRef } from 'react';
 import { supabase, Post, uploadMedia } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Send, BadgeCheck, Edit3, Image, FileText, X, Paperclip, Link, Heart, MessageCircle, Loader2 } from 'lucide-react';
-import { RealtimeChannel } from '@supabase/supabase-js'; // Added import for RealtimeChannel type
+import { Send, BadgeCheck, Edit3, Image, FileText, X, Paperclip, Link, Heart, MessageCircle } from 'lucide-react';
 
 const FOLLOW_ONLY_FEED = import.meta.env.VITE_FOLLOW_ONLY_FEED === 'true';
-const POSTS_PER_PAGE = 10;
-
-// New Constants to enable/disable features
-const ENABLE_REALTIME_SUBSCRIPTION = false; // Set to false to disable and fix the disappearing post issue
-const ENABLE_SCROLL_BREAKER_FEATURE = true; // Set to true to enable the custom scroll bar logic
 
 // Auxiliary types for the new features
 interface Comment {
@@ -63,15 +57,6 @@ export const Feed = () => {
   const [newCommentText, setNewCommentText] = useState('');
   const [isPostingComment, setIsPostingComment] = useState(false);
 
-  // Pagination & Scroll Breaker State
-  const [page, setPage] = useState(0); // Current rendered page index
-  const [hasMorePosts, setHasMorePosts] = useState(true);
-  // const [isLoadingMore, setIsLoadingMore] = useState(false); // REMOVED: Replaced by isPreLoading/preLoadedPosts
-  const [isPreLoading, setIsPreLoading] = useState(false); // NEW: Tracks if the next page is being fetched
-  const [preLoadedPosts, setPreLoadedPosts] = useState<Post[]>([]); // NEW: Stores the posts for the *next* page
-  const [scrollProgress, setScrollProgress] = useState(0);
-  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
   const openLightbox = (url: string, type: 'image' | 'video') => {
     setLightboxMediaUrl(url);
     setLightboxMediaType(type);
@@ -101,24 +86,12 @@ export const Feed = () => {
       .in('entity_id', postIds);
     
     if (data) {
-      setLikedPostIds(prev => {
-        const newSet = new Set(prev);
-        data.forEach(d => newSet.add(d.entity_id));
-        return newSet;
-      });
+      setLikedPostIds(new Set(data.map(d => d.entity_id)));
     }
   };
 
-  // Modified to handle 'append' (initial load) vs 'preload' (background fetch)
-  const loadPosts = async (pageIndex = 0, mode: 'append' | 'preload' = 'append') => {
-    if (mode === 'preload') {
-      if (isPreLoading) return;
-      setIsPreLoading(true);
-      setPreLoadedPosts([]); // Clear previous pre-load attempt
-    }
-    
+  const loadPosts = async () => {
     let query = supabase.from('posts').select('*, profiles(*)').order('created_at', { ascending: false });
-    
     if (FOLLOW_ONLY_FEED && user) {
       const { data: following } = await supabase
         .from('follows')
@@ -130,32 +103,10 @@ export const Feed = () => {
 
       query = query.in('user_id', allowedIds);
     }
-
-    // Pagination Logic
-    const from = pageIndex * POSTS_PER_PAGE;
-    const to = from + POSTS_PER_PAGE - 1;
-    query = query.range(from, to);
-
     const { data } = await query;
     const loadedPosts = data || [];
-
-    if (loadedPosts.length < POSTS_PER_PAGE) {
-      setHasMorePosts(false);
-    } else {
-      setHasMorePosts(true); // Assume more if a full page was loaded
-    }
-
-    if (mode === 'append' && pageIndex === 0) { // Only for initial load
-      setPosts(loadedPosts);
-    } else if (mode === 'preload') { // For background loading the *next* page
-      setPreLoadedPosts(loadedPosts);
-    }
-    
+    setPosts(loadedPosts);
     fetchUserLikes(loadedPosts);
-
-    if (mode === 'preload') {
-      setIsPreLoading(false);
-    }
   };
 
   // Handle Likes
@@ -235,98 +186,39 @@ export const Feed = () => {
   };
 
   useEffect(() => {
-    let channel: RealtimeChannel | undefined;
+    loadPosts();
 
-    // 1. Initial Load & First Pre-load (Only run on mount)
-    if (page === 0 && posts.length === 0) {
-      loadPosts(0, 'append'); // Load current page (0)
-      loadPosts(1, 'preload'); // Immediately pre-load the next page (1)
-    }
-
-    // 2. Auto Pre-load (runs when 'page' is incremented after a reveal)
-    if (hasMorePosts && preLoadedPosts.length === 0 && !isPreLoading && page > 0) {
-        // Pre-load the page *after* the current one.
-        loadPosts(page + 1, 'preload');
-    }
-
-    if (ENABLE_REALTIME_SUBSCRIPTION) {
-      channel = supabase.channel('public:posts').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts' }, async (payload) => {
-        if (FOLLOW_ONLY_FEED && user) {
-          if (payload.new.user_id === user.id) {
-            const { data } = await supabase.from('posts').select('*, profiles(*)').eq('id', payload.new.id).single();
-            if (data) setPosts(current => [data, ...current]);
-            return;
-          }
-
-          const { data: followData } = await supabase
-            .from('follows')
-            .select('following_id')
-            .eq('follower_id', user.id)
-            .eq('following_id', payload.new.user_id);
-
-          if (!followData?.length) return;
+    const channel = supabase.channel('public:posts').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts' }, async (payload) => {
+      if (FOLLOW_ONLY_FEED && user) {
+        if (payload.new.user_id === user.id) {
+          const { data } = await supabase.from('posts').select('*, profiles(*)').eq('id', payload.new.id).single();
+          if (data) setPosts(current => [data, ...current]);
+          return;
         }
-        const { data } = await supabase.from('posts').select('*, profiles(*)').eq('id', payload.new.id).single();
-        if (data) setPosts(current => [data, ...current]);
-      }).subscribe();
-    }
+
+        const { data: followData } = await supabase
+          .from('follows')
+          .select('following_id')
+          .eq('follower_id', user.id)
+          .eq('following_id', payload.new.user_id);
+
+        if (!followData?.length) return;
+      }
+      const { data } = await supabase.from('posts').select('*, profiles(*)').eq('id', payload.new.id).single();
+      if (data) setPosts(current => [data, ...current]);
+    }).subscribe();
 
     const handleScroll = () => {
       const scrolled = window.scrollY > 100;
       if (scrolled && isExpanded) setIsExpanded(false);
       setHasScrolled(scrolled);
     };
-
-    // Logic for "Scroll and Hold" interaction
-    const handleScrollInteraction = () => {
-      // Check if feature is enabled, there are more posts, AND the next batch is PRE-LOADED
-      if (!ENABLE_SCROLL_BREAKER_FEATURE || !hasMorePosts || preLoadedPosts.length === 0) return;
-
-      const scrollContainer = document.documentElement;
-      // Check if user is at the bottom (with a small buffer)
-      const isAtBottom = window.innerHeight + window.scrollY >= scrollContainer.offsetHeight - 50;
-
-      if (isAtBottom) {
-        setScrollProgress(prev => {
-          // Increment progress. Increased speed for better UX.
-          const next = prev + 2.5; 
-          if (next >= 100) {
-            // REVEAL LOGIC: Append preLoadedPosts and trigger next pre-load
-            setPosts(current => [...current, ...preLoadedPosts]); // Append pre-loaded posts
-            setPreLoadedPosts([]); // Clear the revealed posts
-            setPage(p => p + 1); // Increment page, which triggers the next pre-load via useEffect
-            return 0; // Reset progress bar
-          }
-          return next;
-        });
-
-        // Reset timer if user stops scrolling
-        if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
-        scrollTimeoutRef.current = setTimeout(() => {
-          setScrollProgress(0);
-        }, 300); // Increased timeout to prevent accidental reset
-      }
-    };
-
     window.addEventListener('scroll', handleScroll);
-    
-    if (ENABLE_SCROLL_BREAKER_FEATURE) {
-      window.addEventListener('wheel', handleScrollInteraction);
-      window.addEventListener('touchmove', handleScrollInteraction);
-    }
-    
     return () => {
-      if (channel) {
-          supabase.removeChannel(channel);
-      }
+      supabase.removeChannel(channel);
       window.removeEventListener('scroll', handleScroll);
-      if (ENABLE_SCROLL_BREAKER_FEATURE) {
-        window.removeEventListener('wheel', handleScrollInteraction);
-        window.removeEventListener('touchmove', handleScrollInteraction);
-      }
-      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
     };
-  }, [user, isExpanded, hasMorePosts, page, preLoadedPosts.length, isPreLoading, posts.length]); // Updated dependencies
+  }, [user, isExpanded]);
 
   const createPost = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -422,7 +314,7 @@ export const Feed = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto relative pb-24">
+    <div className="max-w-2xl mx-auto">
       <div ref={scrollRef} className="sticky top-0 z-40 bg-[rgb(var(--color-surface))] border-b border-[rgb(var(--color-border))] shadow-sm">
         {isExpanded ? (
           <form onSubmit={createPost} className="p-4 space-y-3">
@@ -516,7 +408,7 @@ export const Feed = () => {
       </div>
 
       <div>
-        {posts.length === 0 && !isPreLoading && ( // Updated to use isPreLoading for initial check
+        {posts.length === 0 && (
           <div className="text-center py-12 text-[rgb(var(--color-text-secondary))]" >
             {FOLLOW_ONLY_FEED ? 'No posts from people you follow yet.' : 'No posts yet. Be the first!'}
           </div>
@@ -586,7 +478,6 @@ export const Feed = () => {
                     >
                       <Heart size={18} fill={likedPostIds.has(post.id) ? "currentColor" : "none"} />
                     </button>
-                    {/* Counts are visible unless 0 or null */}
                     {(post.like_count > 0) && (
                       <button 
                         onClick={(e) => { e.stopPropagation(); openLikesList(post.id); }}
@@ -604,7 +495,6 @@ export const Feed = () => {
                     >
                       <MessageCircle size={18} />
                     </button>
-                     {/* Counts are visible unless 0 or null */}
                     {(post.comment_count > 0) && (
                       <button 
                         onClick={(e) => { e.stopPropagation(); openCommentsList(post.id); }}
@@ -620,42 +510,6 @@ export const Feed = () => {
           </div>
         ))}
       </div>
-
-      {/* Scroll Breaker & End Message */}
-      {posts.length > 0 && ENABLE_SCROLL_BREAKER_FEATURE && (
-        <div className="py-8 flex flex-col items-center gap-2 w-full">
-          {!hasMorePosts ? (
-            <div className="bg-[rgb(var(--color-surface))] border border-[rgb(var(--color-border))] px-4 py-2 rounded-full shadow-lg text-sm text-[rgb(var(--color-text-secondary))]">
-              You have seen all posts from people you follow currently.
-            </div>
-          ) : (
-            <div className="relative overflow-hidden bg-[rgb(var(--color-surface))] border border-[rgb(var(--color-border))] shadow-xl rounded-full w-64 h-10 flex items-center justify-center select-none">
-              <div 
-                className="absolute left-0 top-0 h-full bg-[rgb(var(--color-accent))] opacity-20 transition-all duration-75 ease-linear"
-                style={{ width: `${scrollProgress}%` }}
-              />
-              <span className="relative z-10 text-sm font-semibold text-[rgb(var(--color-text))] flex items-center gap-2">
-                {/* Show spinner if currently pre-loading */}
-                {isPreLoading && preLoadedPosts.length === 0 ? <Loader2 size={16} className="animate-spin" /> : null}
-                {isPreLoading && preLoadedPosts.length === 0 
-                  ? 'Pre-loading next batch...' 
-                  : (preLoadedPosts.length > 0
-                    ? 'Scroll and hold to reveal more' 
-                    : (isPreLoading ? 'Pre-loading next batch...' : 'Fetching initial batch...')) // Fallback for edge cases
-                }
-              </span>
-            </div>
-          )}
-        </div>
-      )}
-      {posts.length > 0 && !hasMorePosts && !ENABLE_SCROLL_BREAKER_FEATURE && (
-        <div className="py-8 flex flex-col items-center gap-2 w-full">
-          <div className="bg-[rgb(var(--color-surface))] border border-[rgb(var(--color-border))] px-4 py-2 rounded-full shadow-lg text-sm text-[rgb(var(--color-text-secondary))]">
-            You have seen all posts from people you follow currently.
-          </div>
-        </div>
-      )}
-
 
       {/* Lightbox */}
       {showLightbox && lightboxMediaUrl && (
