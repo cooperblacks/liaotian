@@ -130,29 +130,24 @@ export const Feed = () => {
   const getPostCounts = useCallback(async (postIds: string[]) => {
     if (!postIds.length) return { likeCounts: {}, commentCounts: {} };
 
-    const [likeRes, commentRes] = await Promise.all([
-      supabase
-        .from('likes')
-        .select('entity_id, count(entity_id)')
-        .eq('entity_type', 'post')
-        .in('entity_id', postIds)
-        .group('entity_id'),
-      supabase
-        .from('comments')
-        .select('post_id, count(post_id)')
-        .in('post_id', postIds)
-        .group('post_id')
-    ]);
-
     const likeCounts: Record<string, number> = {};
-    likeRes.data?.forEach((row: any) => {
-      likeCounts[row.entity_id] = parseInt(row.count, 10);
-    });
-
     const commentCounts: Record<string, number> = {};
-    commentRes.data?.forEach((row: any) => {
-      commentCounts[row.post_id] = parseInt(row.count, 10);
-    });
+
+    for (const postId of postIds) {
+      const [{ count: likeCount }, { count: commentCount }] = await Promise.all([
+        supabase
+          .from('likes')
+          .select('*', { count: 'exact', head: true })
+          .eq('entity_type', 'post')
+          .eq('entity_id', postId),
+        supabase
+          .from('comments')
+          .select('*', { count: 'exact', head: true })
+          .eq('post_id', postId)
+      ]);
+      likeCounts[postId] = likeCount || 0;
+      commentCounts[postId] = commentCount || 0;
+    }
 
     return { likeCounts, commentCounts };
   }, []);
