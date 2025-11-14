@@ -250,10 +250,11 @@ const Main = () => {
         {view === 'settings' && <Settings />}
         {showSearch && <Search onClose={() => setShowSearch(false)} />}
       </main>
-
-      <footer className="text-center text-[rgb(var(--color-text-secondary))] text-xs py-4 border-t border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface))]">
-        © Mux {new Date().getFullYear()}
-      </footer>
+      {view !== 'messages' && (
+        <footer className="text-center text-[rgb(var(--color-text-secondary))] text-xs py-4 border-t border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface))]">
+          © Mux {new Date().getFullYear()}
+        </footer>
+       )}
     </div>
   );
 };
