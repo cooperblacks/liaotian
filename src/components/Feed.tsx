@@ -30,6 +30,44 @@ interface Liker {
     verified: boolean;
   };
 }
+// NEW: Constants and functions for URL embedding
+// Regex to check if the content is *only* a URL. Simplistic regex for common URLs.
+const URL_REGEX = /^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+$/;
+
+const getEmbeddedMedia = (content: string, media_url: string | null) => {
+  if (media_url) return null; // DO NOT embed if post already has media
+
+  const trimmedContent = content.trim();
+  if (URL_REGEX.test(trimmedContent)) {
+    // Check for YouTube URL (for embedding as iframe)
+    const youtubeMatch = trimmedContent.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?.*v=|embed\/|v\/|shorts\/))([\w-]{11})/i);
+
+    if (youtubeMatch && youtubeMatch[1]) {
+      const videoId = youtubeMatch[1];
+      return (
+        <iframe
+          title="Embedded YouTube Video"
+          className="rounded-2xl max-h-96 w-full aspect-video"
+          src={`https://www.youtube.com/embed/${videoId}`}
+          frameBorder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        ></iframe>
+      );
+    }
+    
+    // For other general links, show a simple link preview component
+    return (
+      <a href={trimmedContent} target="_blank" rel="noopener noreferrer" 
+        className="flex items-center gap-2 p-3 bg-[rgb(var(--color-surface-hover))] rounded-lg text-[rgb(var(--color-text))] hover:bg-[rgb(var(--color-border))] transition inline-flex"
+      >
+        <Link size={20} />
+        {trimmedContent.length > 50 ? trimmedContent.substring(0, 47) + '...' : trimmedContent}
+      </a>
+    );
+  }
+  return null;
+};
 
 // --- PAGINATION START ---
 const POST_PAGE_SIZE = 10;
@@ -566,6 +604,12 @@ export const Feed = () => {
                   <span className="text-[rgb(var(--color-text-secondary))] text-sm">· {new Date(post.created_at).toLocaleDateString()} at {formatTime(post.created_at)}</span>
                 </div>
                 <p className="mt-1 whitespace-pre-wrap break-words text-[rgb(var(--color-text))]" >{post.content}</p>
+                {/* NEW: Embed Link if detected and no media is attached */}
+                  {getEmbeddedMedia(post.content, post.media_url) && (
+                      <div className="mt-3">
+                          {getEmbeddedMedia(post.content, post.media_url)}
+                      </div>
+                  )}
                 {post.media_url && (
                   <div className="mt-3">
                     {post.media_type === 'image' && (
@@ -608,7 +652,7 @@ export const Feed = () => {
                     >
                       <Heart size={18} fill={likedPostIds.has(post.id) ? "currentColor" : "none"} />
                     </button>
-                    {(post.like_count > 0) && (
+                    {post.like_count !== undefined && (
                       <button 
                         onClick={(e) => { e.stopPropagation(); openLikesList(post.id); }}
                         className="text-sm text-[rgb(var(--color-text-secondary))] hover:underline"
@@ -625,7 +669,7 @@ export const Feed = () => {
                     >
                       <MessageCircle size={18} />
                     </button>
-                    {(post.comment_count > 0) && (
+                    {post.comment_count !== undefined && (
                       <button 
                         onClick={(e) => { e.stopPropagation(); openCommentsList(post.id); }}
                         className="text-sm text-[rgb(var(--color-text-secondary))] hover:underline"
