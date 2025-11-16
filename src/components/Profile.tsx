@@ -382,38 +382,57 @@ export const Profile = ({ userId, onMessage, onSettings }: { userId?: string; on
     }
   }, [user]); // Added user dependency
 
-  const handleToggleLike = async (post: Post) => {
+  const handleLikeInteraction = async (post: Post) => {
     if (!user) return;
-    const isLiked = likedPostIds.has(post.id);
-    
-    // Optimistic Update
-    const newSet = new Set(likedPostIds);
-    if (isLiked) newSet.delete(post.id);
-    else newSet.add(post.id);
-    setLikedPostIds(newSet);
 
-    // Update the 'posts' list
-    setPosts(current => current.map(p => {
-      if (p.id === post.id) {
-        return { ...p, like_count: isLiked ? (p.like_count - 1) : (p.like_count + 1) };
-      }
-      return p;
-    }));
-    
-    // Also update the 'likedPosts' list
-    setLikedPosts(current => current.map(p => {
-      if (p.id === post.id) {
-        return { ...p, like_count: isLiked ? (p.like_count - 1) : (p.like_count + 1) };
-      }
-      return p;
-    }));
+    // 1. If the user hasn't liked it yet, apply the like immediately
+    if (!likedPostIds.has(post.id)) {
+        const newSet = new Set(likedPostIds);
+        newSet.add(post.id);
+        setLikedPostIds(newSet);
 
-    // DB Update
-    if (isLiked) {
-      await supabase.from('likes').delete().match({ user_id: user.id, entity_id: post.id, entity_type: 'post' });
-    } else {
-      await supabase.from('likes').insert({ user_id: user.id, entity_id: post.id, entity_type: 'post' });
+        // Optimistic UI Update - for both lists
+        setPosts(current => current.map(p => {
+            if (p.id === post.id) return { ...p, like_count: (p.like_count + 1) };
+            return p;
+        }));
+        setLikedPosts(current => current.map(p => {
+            if (p.id === post.id) return { ...p, like_count: (p.like_count + 1) };
+            return p;
+        }));
+
+        // DB Insert
+        await supabase.from('likes').insert({ user_id: user.id, entity_id: post.id, entity_type: 'post' });
     }
+
+    // 2. Open the modal
+    openLikesList(post.id);
+  };
+
+  // New function to remove like ONLY from the modal
+  const handleRemoveLikeFromModal = async (postId: string) => {
+      if (!user) return;
+
+      // Optimistic UI Update
+      const newSet = new Set(likedPostIds);
+      newSet.delete(postId);
+      setLikedPostIds(newSet);
+
+      // Update both lists
+      setPosts(current => current.map(p => {
+          if (p.id === postId) return { ...p, like_count: Math.max(0, p.like_count - 1) };
+          return p;
+      }));
+      setLikedPosts(current => current.map(p => {
+          if (p.id === postId) return { ...p, like_count: Math.max(0, p.like_count - 1) };
+          return p;
+      }));
+
+      // Remove user from the displayed list immediately
+      setLikersList(prev => prev.filter(liker => liker.user_id !== user.id));
+
+      // DB Delete
+      await supabase.from('likes').delete().match({ user_id: user.id, entity_id: postId, entity_type: 'post' });
   };
 
   const openLikesList = async (postId: string) => {
@@ -1131,7 +1150,7 @@ export const Profile = ({ userId, onMessage, onSettings }: { userId?: string; on
                     <div className="flex items-center gap-6 mt-3">
                         <div className="flex items-center gap-1 group">
                           <button 
-                            onClick={(e) => { e.stopPropagation(); handleToggleLike(post); }}
+                            onClick={(e) => { e.stopPropagation(); handleLikeInteraction(post); }}
                             className={`p-2 rounded-full transition ${
                               likedPostIds.has(post.id) 
                                 ? 'text-pink-500 bg-pink-500/10' 
@@ -1308,7 +1327,7 @@ export const Profile = ({ userId, onMessage, onSettings }: { userId?: string; on
                     <div className="flex items-center gap-6 mt-3">
                         <div className="flex items-center gap-1 group">
                           <button 
-                            onClick={(e) => { e.stopPropagation(); handleToggleLike(post); }}
+                            onClick={(e) => { e.stopPropagation(); handleLikeInteraction(post); }}
                             className={`p-2 rounded-full transition ${
                               likedPostIds.has(post.id) 
                                 ? 'text-pink-500 bg-pink-500/10' 
@@ -1583,20 +1602,32 @@ export const Profile = ({ userId, onMessage, onSettings }: { userId?: string; on
                  <p className="text-center text-[rgb(var(--color-text-secondary))]">No likes yet.</p>
               ) : (
                 likersList.map((liker, idx) => (
-                  <div key={`${liker.user_id}-${idx}`} className="flex items-center gap-3">
-                    <img 
-                       src={liker.profiles?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${liker.profiles?.username}`}
-                       className="w-10 h-10 rounded-full cursor-pointer"
-                       alt="Avatar"
-                       onClick={() => goToProfile(liker.user_id)}
-                    />
-                    <div className="flex-1">
-                      <button onClick={() => goToProfile(liker.user_id)} className="font-bold hover:underline text-[rgb(var(--color-text))] text-sm block">
-                        {liker.profiles?.display_name}
-                        {liker.profiles?.verified && <BadgeCheck size={14} className="inline ml-1 text-[rgb(var(--color-accent))]" />}
-                      </button>
-                      <span className="text-sm text-[rgb(var(--color-text-secondary))]">@{liker.profiles?.username}</span>
+                  <div key={`${liker.user_id}-${idx}`} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <img 
+                        src={liker.profiles?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${liker.profiles?.username}`}
+                        className="w-10 h-10 rounded-full cursor-pointer"
+                        alt="Avatar"
+                        onClick={() => goToProfile(liker.user_id)}
+                        />
+                        <div>
+                        <button onClick={() => goToProfile(liker.user_id)} className="font-bold hover:underline text-[rgb(var(--color-text))] text-sm block">
+                            {liker.profiles?.display_name}
+                            {liker.profiles?.verified && <BadgeCheck size={14} className="inline ml-1 text-[rgb(var(--color-accent))]" />}
+                        </button>
+                        <span className="text-sm text-[rgb(var(--color-text-secondary))]">@{liker.profiles?.username}</span>
+                        </div>
                     </div>
+                    {/* Requirement: Unliking is only possible from here */}
+                    {liker.user_id === user?.id && (
+                        <button 
+                            onClick={() => handleRemoveLikeFromModal(activeLikesModal!)}
+                            className="p-2 rounded-full bg-red-50 text-red-500 hover:bg-red-100 transition"
+                            title="Remove Like"
+                        >
+                            <Heart size={16} className="fill-current" />
+                        </button>
+                    )}
                   </div>
                 ))
               )}
