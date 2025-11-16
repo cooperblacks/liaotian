@@ -38,3 +38,12 @@ CREATE POLICY "Users can insert own statuses" ON statuses FOR INSERT WITH CHECK 
 CREATE POLICY "Users can read active statuses" ON statuses FOR SELECT USING (expires_at > NOW() AND (auth.uid() = user_id OR true));  -- true for public; adjust if follow-only
 CREATE POLICY "Users can read own archive" ON statuses FOR SELECT USING (auth.uid() = user_id);  -- For archive, all own
 CREATE POLICY "Users can update own viewed_by" ON statuses FOR UPDATE USING (auth.uid() = ANY(viewed_by) OR auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+
+
+
+-- Drop existing FK if it exists (ignore error if not)
+ALTER TABLE statuses DROP CONSTRAINT IF EXISTS statuses_user_id_fkey;
+
+-- Add new FK to profiles.id (assuming profiles table exists with id referencing auth.users)
+ALTER TABLE statuses ADD CONSTRAINT statuses_user_id_fkey FOREIGN KEY (user_id) REFERENCES profiles (id) ON DELETE CASCADE;
