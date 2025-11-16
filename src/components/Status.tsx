@@ -88,6 +88,7 @@ export const StatusTray: React.FC = () => {
         
         const self = usersMap.get(user.id) || { ...profile, statuses: [], hasUnseen: false };
         if (self.statuses.length > 0) {
+            // FIX: Your own 'hasUnseen' was bugged. This is now just for calculation.
             self.hasUnseen = self.statuses.some(s => !s.viewed_by.includes(user.id));
         }
         
@@ -151,21 +152,23 @@ export const StatusTray: React.FC = () => {
 
   if (!user) return null;
 
-  // NEW: Ring rendering logic
+  // NEW: Ring rendering logic (FIXED)
   const renderRing = (user: ProfileWithStatus) => {
     const hasStatus = user.statuses.length > 0;
     
     if (user.id === profile?.id) {
+        // --- OWN RING ---
         if (hasStatus) {
-            // Own status: Gray if seen, gradient if unseen
-            return <div className={`absolute inset-0 rounded-full p-[2px] -z-10 ${user.hasUnseen ? 'bg-gradient-to-tr from-[rgb(var(--color-accent))] to-[rgb(var(--color-primary))]' : 'bg-[rgb(var(--color-border))]'}`} />
+            // Show a plain gray ring if you have a status (like IG)
+            return <div className={`absolute inset-0 rounded-full p-[2px] -z-10 bg-[rgb(var(--color-border))]`} />
         } else {
             // No status: Dashed ring
             return <div className="absolute inset-0 rounded-full border-2 border-dashed border-[rgb(var(--color-border))] -z-10"/>
         }
     }
     
-    // Other users: Gradient if unseen, gray if seen
+    // --- OTHERS' RINGS ---
+    // Gradient if unseen, gray if seen
     return <div className={`absolute inset-0 rounded-full p-[2px] -z-10 ${user.hasUnseen ? 'bg-gradient-to-tr from-[rgb(var(--color-accent))] to-[rgb(var(--color-primary))] group-hover:scale-105 transition-transform' : 'bg-[rgb(var(--color-border))]'}`} />
   };
 
@@ -559,6 +562,7 @@ const StatusCreator: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 //  Upgraded with "Viewed by" list, profile nav, and DM replies.
 // =======================================================================
 
+// --- NEW, ROBUST StoryProgressBar ---
 const StoryProgressBar: React.FC<{
   duration: number;
   isActive: boolean;
@@ -566,62 +570,86 @@ const StoryProgressBar: React.FC<{
   onFinished: () => void;
 }> = ({ duration, isActive, isPaused, onFinished }) => {
   const [progress, setProgress] = useState(0);
+  const startTimeRef = useRef<number>(Date.now());
+  const accumulatedPauseDurationRef = useRef<number>(0);
+  const lastPauseTimeRef = useRef<number>(0);
 
+  // Effect to reset or fill the bar based on active state
   useEffect(() => {
-    if (isActive) setProgress(0); // Became active, reset
-    else if (progress < 100) setProgress(0); // Not active and not finished, reset
+    if (isActive) {
+      setProgress(0);
+      startTimeRef.current = Date.now();
+      accumulatedPauseDurationRef.current = 0;
+      lastPauseTimeRef.current = 0;
+    } else {
+      // If we are navigating away, check progress.
+      // If not 100, reset to 0. If 100, keep it 100.
+      setProgress(p => p < 100 ? 0 : 100);
+    }
   }, [isActive]);
-  
+
+  // Effect to handle pausing
   useEffect(() => {
     if (!isActive) return;
 
-    if (progress === 0 && !isPaused) {
-       // Start timer
-       const startTime = Date.now();
-       let frameId: number;
-
-       const animate = (timestamp: number) => {
-         if (isPaused) {
-           frameId = requestAnimationFrame(animate);
-           return;
-         }
-         
-         // Calculate elapsed time based on when it *started*, not just last frame
-         const elapsedTime = Date.now() - startTime;
-         const newProgress = (elapsedTime / duration) * 100;
-
-         if (newProgress >= 100) {
-           setProgress(100);
-           onFinished();
-         } else {
-           setProgress(newProgress);
-           frameId = requestAnimationFrame(animate);
-         }
-       };
-       
-       frameId = requestAnimationFrame(animate);
-
-       return () => {
-         cancelAnimationFrame(frameId);
-       };
-    } else if (progress === 100) {
-        // Already finished
-        onFinished();
+    if (isPaused) {
+      // We just paused
+      if (lastPauseTimeRef.current === 0) { // Only set if not already set
+        lastPauseTimeRef.current = Date.now();
+      }
+    } else {
+      // We just unpaused
+      if (lastPauseTimeRef.current > 0) {
+        accumulatedPauseDurationRef.current += (Date.now() - lastPauseTimeRef.current);
+        lastPauseTimeRef.current = 0;
+      }
     }
-  }, [isActive, isPaused, duration, onFinished, progress]);
+  }, [isPaused, isActive]);
+
+  // Effect for the animation loop
+  useEffect(() => {
+    if (!isActive || isPaused || duration === 0) return;
+
+    let frameId: number;
+
+    const animate = () => {
+      const now = Date.now();
+      const elapsedTime = now - startTimeRef.current - accumulatedPauseDurationRef.current;
+      const newProgress = (elapsedTime / duration) * 100;
+
+      if (newProgress >= 100) {
+        setProgress(100);
+        onFinished();
+      } else {
+        setProgress(newProgress);
+        frameId = requestAnimationFrame(animate);
+      }
+    };
+    
+    frameId = requestAnimationFrame(animate);
+
+    return () => {
+      cancelAnimationFrame(frameId);
+    };
+  }, [isActive, isPaused, duration, onFinished]); // Runs when unpaused
+
+  // If not active, show 0% unless it's already finished (100%)
+  const displayProgress = !isActive && progress < 100 ? 0 : progress;
 
   return (
     <div className="flex-1 h-1 bg-white/30 rounded-full overflow-hidden">
       <div 
         className="h-full bg-white"
         style={{ 
-            width: `${progress}%`,
-            transition: progress === 0 ? 'none' : 'width 0.1s linear'
+            width: `${displayProgress}%`,
+            // Use a tiny transition to smooth out the raf updates
+            transition: (displayProgress > 0 && displayProgress < 100) ? 'width 50ms linear' : 'none'
         }} 
       />
     </div>
   );
 };
+
 
 /**
  * NEW: Modal to show who viewed a status
@@ -645,7 +673,7 @@ const StatusViewersModal: React.FC<{
                     .eq('id', statusId)
                     .single();
                 
-                if (statusError || !statusData || statusData.viewed_by.length === 0) {
+                if (statusError || !statusData || !statusData.viewed_by || statusData.viewed_by.length === 0) {
                     setIsLoading(false);
                     return;
                 }
@@ -739,6 +767,7 @@ const StatusViewer: React.FC<{
   const [replyContent, setReplyContent] = useState('');
   const [isSendingReply, setIsSendingReply] = useState(false);
   const [showViewers, setShowViewers] = useState(false);
+  const [videoDuration, setVideoDuration] = useState(0); // <-- NEW: For video duration
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const currentUser = allStatusUsers[currentUserIndex];
@@ -787,7 +816,7 @@ const StatusViewer: React.FC<{
     
     setIsLoading(true);
     
-    // 1. Mark as viewed
+    // 1. Mark as viewed (FIXED: Now uses RPC)
     const markAsViewed = async () => {
         // Don't mark own stories as viewed
         if (currentStory.user_id === user.id) return;
@@ -798,21 +827,11 @@ const StatusViewer: React.FC<{
         
         currentStory.viewed_by.push(user.id); // Mutate local copy
         
-        // Fire-and-forget DB update
-        // This uses a (safe) client-side fetch and update.
-        // An RPC 'array_append' would be more atomic but this is fine.
-        const { data: currentViews } = await supabase
-            .from('statuses')
-            .select('viewed_by')
-            .eq('id', currentStory.id)
-            .single();
-        
-        if (currentViews && !currentViews.viewed_by.includes(user.id)) {
-            await supabase
-                .from('statuses')
-                .update({ viewed_by: [...currentViews.viewed_by, user.id] })
-                .eq('id', currentStory.id);
-        }
+        // Fire-and-forget DB update using RPC
+        await supabase.rpc('mark_status_viewed', {
+            status_id: currentStory.id,
+            viewer_id: user.id
+        });
     };
     
     markAsViewed();
@@ -828,6 +847,7 @@ const StatusViewer: React.FC<{
       if (videoRef.current) {
         videoRef.current.src = mediaUrl;
         videoRef.current.load();
+        setVideoDuration(0); // <-- NEW: Reset duration
       }
     }
   }, [currentStory, user, goToNextStory]);
@@ -923,12 +943,14 @@ const StatusViewer: React.FC<{
           {currentUser.statuses.map((story, idx) => (
             <StoryProgressBar
               key={story.id}
-              duration={story.media_type === 'image' ? 5000 : 0} 
+              duration={ // <-- UPDATED to use videoDuration
+                story.media_type === 'image' 
+                  ? 5000 
+                  : (idx === currentStoryIndex ? videoDuration : 0)
+              } 
               isActive={idx === currentStoryIndex}
               isPaused={isPaused || isLoading}
-              onFinished={() => {
-                if(story.media_type === 'image') goToNextStory();
-              }}
+              onFinished={goToNextStory} // <-- UPDATED to be universal
             />
           ))}
         </div>
@@ -972,8 +994,17 @@ const StatusViewer: React.FC<{
           ref={videoRef}
           className={`max-w-full max-h-full object-contain transition-opacity ${currentStory.media_type === 'video' ? 'opacity-100' : 'opacity-0'}`}
           playsInline
-          onEnded={goToNextStory}
-          onCanPlay={() => setIsLoading(false)}
+          onEnded={goToNextStory} // Keep as fallback
+          onLoadedMetadata={(e) => { // <-- NEW: Get video duration
+            setIsLoading(false); // Video metadata is loaded
+            setVideoDuration(e.currentTarget.duration * 1000);
+          }}
+          onCanPlay={() => { // Keep as fallback
+             setIsLoading(false);
+             if (videoRef.current && videoDuration === 0) { // Fix for stubborn browsers
+                setVideoDuration(videoRef.current.duration * 1000);
+             }
+          }}
           onError={() => goToNextStory()}
           muted
         />
