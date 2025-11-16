@@ -292,6 +292,7 @@ const StatusCreator: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       const { error } = await supabase
         .from('statuses')
         .insert({
+          user_id: user.id,
           media_url: uploadResult.url,
           media_type: mediaType,
           text_overlay: textOverlay.text ? textOverlay : {},
